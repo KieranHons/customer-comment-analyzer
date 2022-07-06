@@ -19,25 +19,14 @@ public class CommentAnalyzer {
 	public Map<String, Integer> analyze() {
 		
 		Map<String, Integer> resultsMap = new HashMap<>();
+		Comment comment = new Comment();
 		
 		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
 			
-			String line = null;
+			String line;
 			while ((line = reader.readLine()) != null) {
-				
-				if (line.length() < 15) {
-					
-					incOccurrence(resultsMap, "SHORTER_THAN_15");
-
-				} else if (line.contains("Mover")) {
-
-					incOccurrence(resultsMap, "MOVER_MENTIONS");
-				
-				} else if (line.contains("Shaker")) {
-
-					incOccurrence(resultsMap, "SHAKER_MENTIONS");
-				
-				}
+				line = line.toLowerCase();
+				comment.checkLine(line).forEach(key -> incOccurrence(resultsMap, key));
 			}
 			
 		} catch (FileNotFoundException e) {
@@ -58,7 +47,6 @@ public class CommentAnalyzer {
 	 * @param key the key for the value to increment
 	 */
 	private void incOccurrence(Map<String, Integer> countMap, String key) {
-		
 		countMap.putIfAbsent(key, 0);
 		countMap.put(key, countMap.get(key) + 1);
 	}

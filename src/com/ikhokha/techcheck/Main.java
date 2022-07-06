@@ -3,6 +3,9 @@ package com.ikhokha.techcheck;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class Main {
 
@@ -12,17 +15,24 @@ public class Main {
 				
 		File docPath = new File("docs");
 		File[] commentFiles = docPath.listFiles((d, n) -> n.endsWith(".txt"));
-		
+
+		assert commentFiles != null;
+		ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(16);
 		for (File commentFile : commentFiles) {
-			
-			CommentAnalyzer commentAnalyzer = new CommentAnalyzer(commentFile);
-			Map<String, Integer> fileResults = commentAnalyzer.analyze();
-			addReportResults(fileResults, totalResults);
-						
+			executor.submit(() -> {
+				CommentAnalyzer commentAnalyzer = new CommentAnalyzer(commentFile);
+				Map<String, Integer> fileResults = commentAnalyzer.analyze();
+				addReportResults(fileResults, totalResults);
+			});
 		}
-		
-		System.out.println("RESULTS\n=======");
-		totalResults.forEach((k,v) -> System.out.println(k + " : " + v));
+		executor.shutdown();
+		try {
+			executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+			System.out.println("RESULTS\n=======");
+			totalResults.forEach((k,v) -> System.out.println(k + " : " + v));
+		} catch (InterruptedException e) {
+			System.out.println("Error: "+e);
+		}
 	}
 	
 	/**
@@ -33,7 +43,7 @@ public class Main {
 	private static void addReportResults(Map<String, Integer> source, Map<String, Integer> target) {
 
 		for (Map.Entry<String, Integer> entry : source.entrySet()) {
-			target.put(entry.getKey(), entry.getValue());
+			target.merge(entry.getKey(), entry.getValue(), Integer::sum);
 		}
 		
 	}
